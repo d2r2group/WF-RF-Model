@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='wfrfmodel',
-    version='2.1.0',
+    version='2.1.1',
     url='https://github.com/d2r2group/WF-RF-Model',
     description='Random Forest Model to predict the work function of surfaces',
     author='Peter Schindler',

@@ -10,16 +10,16 @@ Please, cite the following paper if you use the model in your research:
 > P. Schindler, E. R. Antoniuk, G. Cheon, Y. Zhu, and E. J. Reed,
 > *Discovery of stable surfaces with extreme work functions by 
 > high-throughput density functional theory and machine learning*, 
-> arXiv 2011.10905 (2020) 
+> arXiv 2011.10905v2 (2024) 
 > [link to preprint](https://arxiv.org/abs/2011.10905)
 
 
 ## Installation
 
 The Python module can be installed by following these steps: 
-1. Clone the repository 
+1. Clone the repository.
 2. Run `pip install .` in the repository base folder.
-3. Download file `RF_1691469908.2138267.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449568.svg)](https://zenodo.org/doi/10.5281/zenodo.10449568) and move it to the `WF-RF-Model` folder (same folder as file `main.py`).
+3. Download file `RF_1691469908.2138267.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449568.svg)](https://zenodo.org/doi/10.5281/zenodo.10449568) and move it to the `wfrfmodel` folder (same folder as file `main.py`).
 
 
 ## Usage

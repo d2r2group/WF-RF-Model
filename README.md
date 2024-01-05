@@ -29,7 +29,7 @@ The model can be easily initialized and used to predict the work function
 you have a slab stored in file `slab.cif`:
 
 ```Python
-from WF-RF-Model import WFRFModel
+from wfrfmodel import WFRFModel
 from pymatgen.core import Structure
 
 slab = Structure.from_file('slab.cif')

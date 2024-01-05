@@ -6,16 +6,17 @@ import math
 import statistics
 import joblib
 import json
+from os.path import join
+from pathlib import Path
 from pymatgen.core import Structure
 from pymatgen.core.periodic_table import Element
 from sklearn.preprocessing import StandardScaler
 
-
-with open('atomic_features/firstionizationenergy.txt') as f:
+with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'firstionizationenergy.txt'), 'r') as f:
     content = f.readlines()
 fie = [float(x.strip()) for x in content]
 
-with open('atomic_features/mendeleev.txt') as f:
+with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'mendeleev.txt'), 'r') as f:
     content = f.readlines()
 mendeleev = [float(x.strip()) for x in content]
 
@@ -24,12 +25,13 @@ class WFRFModel:
 
     def __init__(self):
         try:
-            self.model = joblib.load('RF_1691469908.2138267.joblib')
+            self.model = joblib.load(join(str(Path(__file__).absolute().parent), 'RF_1691469908.2138267.joblib'))
         except FileNotFoundError:
-            raise FileNotFoundError('ML model joblib file not found. Please, download it from here:')
+            raise FileNotFoundError('ML model joblib file not found. Please, download it from '
+                                    'here: https://zenodo.org/doi/10.5281/zenodo.10449568')
 
         # Load feature scaling from training
-        with open('scaler.json', 'r') as jf:
+        with open(join(str(Path(__file__).absolute().parent), 'scaler.json'), 'r') as jf:
             scaler_json = json.load(jf)
         scaler_load = json.loads(scaler_json)
         self.sc = StandardScaler()
@@ -51,7 +53,6 @@ class WFRFModel:
                     [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
                      None, None, None, None])
 
-        # struc *= (2,2,1)
         ftol = tol / struc.lattice.c
         if len(struc.sites) > 3:
             pos = struc.frac_coords
@@ -79,7 +80,6 @@ class WFRFModel:
                          None, None, None, None])
 
             # Check there are at least 3 layers, given tolerance to group layers
-            # print('Indices list = {}'.format(indices_list))
             if len(indices_list) < 3:
                 print('Warning: Slab less than 3 atomic layers in z-direction, '
                       'with a tolerance = ' + str(tol) + ' A.', flush=True)
@@ -91,8 +91,6 @@ class WFRFModel:
 
             # Check if structure is of form slab with minimum vacuum of 5 A in z-direction
             min_vac = 5.0  # Angstrom
-            # print('max - min = {}'.format((max(p[2] for p in pos) - min(p[2] for p in pos)) * struc.lattice.c))
-            # print('c length = {}'.format(struc.lattice.c))
             if max(pos[:][2]) - min(pos[:][2]) * struc.lattice.c + min_vac > struc.lattice.c:
                 print('Warning: Input structure either has no vacuum between slabs '
                       'or is not oriented in z-direction', flush=True)
@@ -107,13 +105,11 @@ class WFRFModel:
         # Add features
         chem = [s.species.elements[0].symbol for s in struc.sites]
         cell = list(struc.lattice.lengths) + list(struc.lattice.angles)
-        # pos = struc.get_positions()  # already defined above
 
         # Refer to top or bottom surface index:
         sindex = 0
         sindex2 = 1
         sindex3 = 2
-        # sindex4 = 3
 
         # Feature Layer 1
         f_chi = []
@@ -157,7 +153,6 @@ class WFRFModel:
         f_angles_min = min(f_angles)
 
         f_packing_area = len(indices_list[sindex]) / (cell[0] * cell[1] * math.sin(cell[5]))
-        # f_area = cell[0] * cell[1] * math.sin(cell[5])
 
         # Features layer 2
         f_z1_2 = abs(pos[indices_list[sindex][0]][2] - pos[indices_list[sindex2][0]][2]) * cell[2]

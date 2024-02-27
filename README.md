@@ -35,5 +35,17 @@ from pymatgen.core import Structure
 slab = Structure.from_file('slab.cif')
 
 WFModel = WFRFModel()
-print(WFModel.predict_work_function(slab)) 
+print(WFModel.predict_work_function_from_slab(slab)) 
+```
+
+Or from a bulk structure stored in file `bulk.cif` and by specifying the Miller index:
+
+```Python
+from wfrfmodel import WFRFModel
+from pymatgen.core import Structure
+
+bulk = Structure.from_file('bulk.cif')
+
+WFModel = WFRFModel()
+print(WFModel.predict_work_function_from_bulk_and_miller(bulk, (1, 0, 0))) 
 ```

@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import numpy.typing as npt
@@ -6,11 +5,16 @@ import math
 import statistics
 import joblib
 import json
+import warnings
+from typing import Union
 from os.path import join
 from pathlib import Path
 from pymatgen.core import Structure
 from pymatgen.core.periodic_table import Element
+from pymatgen.core.surface import SlabGenerator
 from sklearn.preprocessing import StandardScaler
+
+warnings.filterwarnings("ignore", category=UserWarning)  # To ignore sklearn warnings
 
 with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'firstionizationenergy.txt'), 'r') as f:
     content = f.readlines()
@@ -28,7 +32,7 @@ class WFRFModel:
             self.model = joblib.load(join(str(Path(__file__).absolute().parent), 'RF_1691469908.2138267.joblib'))
         except FileNotFoundError:
             raise FileNotFoundError('ML model joblib file not found. Please, download it from '
-                                    'here: https://zenodo.org/doi/10.5281/zenodo.10449568')
+                                    'here: https://zenodo.org/doi/10.5281/zenodo.10449567')
 
         # Load feature scaling from training
         with open(join(str(Path(__file__).absolute().parent), 'scaler.json'), 'r') as jf:
@@ -40,6 +44,33 @@ class WFRFModel:
         self.sc.var_ = scaler_load['var']
         self.sc.n_samples_seen_ = scaler_load['n_samples_seen']
         self.sc.n_features_in_ = scaler_load['n_features_in']
+        self.features_labels = ['f_angles_min', 'f_chi', 'f_1_r', 'f_fie', 'f_fie2', 'f_fie3', 'f_mend',
+                                'f_z1_2', 'f_z1_3', 'f_packing_area', 'f_chi_min', 'f_chi2_max',
+                                'f_1_r_min', 'f_fie2_min', 'f_mend2_min']
+
+    @staticmethod
+    def group_indices_by_layers(positions: list, frac_tol: float) -> list:
+        counter = 0
+        index_list = []
+        while counter < len(positions):
+            # Find index for atom(s) with lowest c-position
+            surface = max(positions[:, 2])
+            highest_indices = []
+            for ind, p in enumerate(positions):
+                if p[2] > surface - frac_tol:
+                    highest_indices.append(ind)
+            # Once the index/indices of highest atom(s) is/are found,
+            # set that position to zero for the next while loop iteration
+            # and increase counter by the number of highest found indices.
+            if len(highest_indices) > 0:
+                index_list.append(highest_indices)
+                for ind in highest_indices:
+                    positions[ind] = [0, 0, 0]
+                counter += len(highest_indices)
+            else:
+                print('Warning: No highest index found. Counter = ' + str(counter), flush=True)
+                return []
+        return index_list
 
     @staticmethod
     def featurize(struc: Structure, tol: float = 0.4) -> npt.ArrayLike:
@@ -56,31 +87,14 @@ class WFRFModel:
         ftol = tol / struc.lattice.c
         if len(struc.sites) > 3:
             pos = struc.frac_coords
-            counter = 0
-            indices_list = []
-            while counter < len(pos):
-                # Find index for atom(s) with lowest c-position
-                surface = max(pos[:, 2])
-                highest_indices = []
-                for ind, p in enumerate(pos):
-                    if p[2] > surface - ftol:
-                        highest_indices.append(ind)
-                # Once the index/indices of highest atom(s) is/are found,
-                # set that position to zero for the next while loop iteration
-                # and increase counter by the number of highest found indices.
-                if len(highest_indices) > 0:
-                    indices_list.append(highest_indices)
-                    for ind in highest_indices:
-                        pos[ind] = [0, 0, 0]
-                    counter += len(highest_indices)
-                else:
-                    print('Warning: No highest index found. Counter = ' + str(counter), flush=True)
-                    return np.array(
-                        [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-                         None, None, None, None])
+            indices_list = WFRFModel.group_indices_by_layers(pos, ftol)
+            if len(indices_list) == 0:
+                return np.array(
+                    [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+                     None, None, None, None])
 
             # Check there are at least 3 layers, given tolerance to group layers
-            if len(indices_list) < 3:
+            elif len(indices_list) < 3:
                 print('Warning: Slab less than 3 atomic layers in z-direction, '
                       'with a tolerance = ' + str(tol) + ' A.', flush=True)
                 return np.array(
@@ -183,14 +197,80 @@ class WFRFModel:
                          statistics.mean(f_mend),
                          f_z1_2, f_z1_3, f_packing_area, f_chi_min, f_chi2_max, f_1_r_min, f_fie2_min, f_mend2_min])
 
-    def predict_work_function(self, slab: Structure) -> float:
-        features_labels = ['f_angles_min', 'f_chi', 'f_1_r', 'f_fie', 'f_fie2', 'f_fie3', 'f_mend', 'f_z1_2', 'f_z1_3',
-                           'f_packing_area', 'f_chi_min', 'f_chi2_max', 'f_1_r_min', 'f_fie2_min', 'f_mend2_min']
-        feat_df = pd.DataFrame(columns=features_labels)
-        features = self.featurize(slab, tol=0.4)
+    @staticmethod
+    def mirror_slab(slab: Structure) -> Structure:
+        coords_reversed_z = []
+        species = [sf.species for sf in slab]
+        for site in slab:
+            c = [1 - s if i == 2 else s for i, s in enumerate(site.frac_coords)]
+            coords_reversed_z.append(c)
+        return Structure(slab.lattice.matrix, species, coords_reversed_z, coords_are_cartesian=False)
+
+    @staticmethod
+    def generate_slabs_from_bulk(bulk: Structure, miller: Union[tuple, list], tol: float = 0.4) -> list:
+        n = 1
+        while True:
+            slab = SlabGenerator(bulk, miller, n, 10, in_unit_planes=True).get_slabs()[0]
+            ftol = tol / slab.lattice.c
+            if len(WFRFModel.group_indices_by_layers(slab.frac_coords, ftol)) > 3:
+                break
+            else:
+                n += 1
+        slabs = SlabGenerator(bulk, miller, n, 10, in_unit_planes=True).get_slabs()
+        slabs_mirrored = []
+        for s in slabs:
+            slabs_mirrored.append(WFRFModel.mirror_slab(s))
+        return slabs + slabs_mirrored
+
+    @staticmethod
+    def get_elements_topmost_layer(slab: Structure, tol: float = 0.4) -> str:
+        topelementsstring = []
+        ftol = tol / slab.lattice.c
+        slab_ind = WFRFModel.group_indices_by_layers(slab.frac_coords, ftol)
+        for ind in slab_ind[0]:
+            topelementsstring.append(slab.species[ind].symbol)
+        return '-'.join(list(set(topelementsstring)))
+
+    def predict_work_function_from_slab(self, slab: Structure, tol: float = 0.4) -> float:
+        """
+        Predicts the work function from a single slab structure (of the top surface).
+        :param slab: (Structure) Slab structure as a pymatgen Structure object
+        :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
+        :return: (float) Predicted work function
+        """
+        feat_df = pd.DataFrame(columns=self.features_labels)
+        features = self.featurize(slab, tol=tol)
         feat_df.loc[0, 'f_angles_min':'f_mend2_min'] = features
-        X = self.sc.transform([feat_df.loc[0, features_labels].tolist()])
-        return self.model.predict(X)[0]
+        x = self.sc.transform([feat_df.loc[0, self.features_labels].tolist()])
+        return round(self.model.predict(x)[0], 4)
+
+    def predict_work_function_from_bulk_and_miller(self, bulk: Structure, miller: Union[list, tuple],
+                                                   tol: float = 0.4) -> dict:
+        """
+        Predicts the work function from a bulk structure and a Miller index
+        :param bulk: (Structure) Bulk structure as a pymatgen Structure object
+        :param miller: (tuple or list) Miller index of surface
+        :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
+        :return: (dict) Dictionary with keys as
+            '<termination number (e.g., 0,1,2,...)>, <terminating chemical species (e.g. Cs-Hg)>'
+            and the values are the respective predicted WFs
+        """
+        feat_df = pd.DataFrame(columns=self.features_labels, dtype=float)
+        slabs = self.generate_slabs_from_bulk(bulk, miller, tol=tol)
+        surface_elements = {}
+        for ind, s in enumerate(slabs):
+            surface_elements[ind] = self.get_elements_topmost_layer(s, tol=tol)
+            features = self.featurize(s, tol=tol)
+            feat_df.at[ind, 'f_angles_min':'f_mend2_min'] = features
+        feat_final = feat_df.round(8).drop_duplicates()
+        x = self.sc.transform(feat_final)
+        WFs = self.model.predict(x)
+        results_dict = {}
+        ri = 0
+        for i in feat_final.index:
+            results_dict[str(ri) + ',' + surface_elements[i]] = round(WFs[ri], 4)
+            ri += 1
+        return results_dict
 
 
 if __name__ == '__main__':
@@ -235,9 +315,43 @@ if __name__ == '__main__':
                   "[17.463525115191132, 1.9927847344276035, 1.9927847344276048], 'label': 'Tl', 'properties': {}}, "
                   "{'species': [{'element': 'Tl', 'occu': 1}], 'abc': [0.5, 0.5, 0.7409245398599373], 'xyz': "
                   "[21.44909458404634, 1.9927847344276035, 1.992784734427605], 'label': 'Tl', 'properties': {}}]}")
+    bulk_dict = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'charge': 0.0, 'lattice': {'matrix': [["
+                 "3.17031556, 0.0, 1.9412584014205245e-16], [5.09825625865827e-16, 3.17031556, 1.9412584014205245e-16],"
+                 "[0.0, 0.0, 3.17031556]], 'a': 3.17031556, 'b': 3.17031556, 'c': 3.17031556, 'alpha': 90.0, "
+                 "'beta': 90.0,"
+                 "'gamma': 90.0, 'volume': 31.864527039671284}, 'sites': [{'species': [{'element': 'W', 'occu': 1.0}], "
+                 "'abc': [0.0, 0.0, 0.0], 'xyz': [0.0, 0.0, 0.0], 'label': 'W', 'properties': {}}, {'species': [{"
+                 "'element': 'W', 'occu': 1.0}], 'abc': [0.5, 0.5, 0.5], 'xyz': [1.5851577800000003, 1.58515778, "
+                 "1.5851577800000003], 'label': 'W', 'properties': {}}]}")
+    bulk_dict2 = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'charge': 0.0, 'lattice': {'matrix': "
+                  "[[7.054590496875471, 0.0, -1.710473308443313], [-0.7996513496446345, 7.193239775683547, "
+                  "-2.3248672680183318], [0.0, 0.0, 7.69028104]], 'a': 7.258992079999999, 'b': 7.601785880000001, "
+                  "'c': 7.69028104, 'alpha': 107.8082093, 'beta': 103.62906256000001, 'gamma': 91.72863655, "
+                  "'volume': 390.2460872838975}, 'sites': [{'species': [{'element': 'Cs', 'occu': 1.0}], "
+                  "'abc': [0.75721209, 0.34052268, 0.55138758], 'xyz': [5.069521793586606, 2.4494612862983605, "
+                  "2.153464350640027], 'label': 'Cs', 'properties': {}}, {'species': [{'element': 'Cs', "
+                  "'occu': 1.0}], 'abc': [0.24278791, 0.65947732, 0.44861242], 'xyz': [1.1854173536442305, "
+                  "4.743778489385187, 1.5014761128983285], 'label': 'Cs', 'properties': {}}, {'species': [{'element': "
+                  "'Cs', 'occu': 1.0}], 'abc': [0.31212837, 0.21193126, 0.86097737], 'xyz': [2.032466714716343, "
+                  "1.5244723691427315, 5.594558649243264], 'label': 'Cs', 'properties': {}}, {'species': [{'element': "
+                  "'Cs', 'occu': 1.0}], 'abc': [0.68787163, 0.78806874, 0.13902263], 'xyz': [4.222472432514493, "
+                  "5.668767406540816, -1.9396181857049082], 'label': 'Cs', 'properties': {}}, {'species': [{"
+                  "'element': 'Hg', 'occu': 1.0}], 'abc': [0.81113755, 0.89539163, 0.71289813], "
+                  "'xyz': [5.006242126498843, 6.440766687730125, 2.0132911511947715], 'label': 'Hg', 'properties': {"
+                  "}}, {'species': [{'element': 'Hg', 'occu': 1.0}], 'abc': [0.18886245, 0.10460837, 0.28710187], "
+                  "'xyz': [1.2486970207319934, 0.7524730879534215, 1.6416493123435842], 'label': 'Hg', 'properties': "
+                  "{}}, {'species': [{'element': 'Hg', 'occu': 1.0}], 'abc': [0.13512203, 0.75269973, 0.94631554], "
+                  "'xyz': [0.35133323378487036, 5.414349636982267, 5.296382864498449], 'label': 'Hg', 'properties': {"
+                  "}}, {'species': [{'element': 'Hg', 'occu': 1.0}], 'abc': [0.86487797, 0.24730027, 0.05368446], "
+                  "'xyz': [5.903605913445966, 1.7788901387012805, -1.6414424009600936], 'label': 'Hg', 'properties': "
+                  "{}}]}")
     slab1 = Structure.from_dict(eval(slab_dict1))
     slab2 = Structure.from_dict(eval(slab_dict2))
+    bulk_W = Structure.from_dict(eval(bulk_dict))
+    bulk_CsHg = Structure.from_dict(eval(bulk_dict2))
 
     WFModel = WFRFModel()
-    print(WFModel.predict_work_function(slab1))  # prediction 3.85, ground truth: 3.69
-    print(WFModel.predict_work_function(slab2))  # prediction 3.49, ground truth: 3.40
+    print(WFModel.predict_work_function_from_slab(slab1))  # prediction 3.85, ground truth: 3.69
+    print(WFModel.predict_work_function_from_slab(slab2))  # prediction 3.49, ground truth: 3.40
+    print(WFModel.predict_work_function_from_bulk_and_miller(bulk_W, (1, 1, 0)))  # returns dict with one WF
+    print(WFModel.predict_work_function_from_bulk_and_miller(bulk_CsHg, (1, 0, 0)))  # returns dict with 10 WFs

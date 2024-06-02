@@ -10,8 +10,8 @@ Please, cite the following paper if you use the model in your research:
 > P. Schindler, E. R. Antoniuk, G. Cheon, Y. Zhu, and E. J. Reed,
 > *Discovery of stable surfaces with extreme work functions by 
 > high-throughput density functional theory and machine learning*, 
-> arXiv 2011.10905v2 (2024) 
-> [link to preprint](https://arxiv.org/abs/2011.10905)
+> **Advanced Functional Materials 34**, 19 (2024) 2401764, 
+> [10.1002/adfm.202401764](https://doi.org/10.1002/adfm.202401764)
 
 
 ## Installation

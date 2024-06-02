@@ -6,7 +6,7 @@ import statistics
 import joblib
 import json
 import warnings
-from typing import Union
+from typing import Union, List, Tuple
 from os.path import join
 from pathlib import Path
 from pymatgen.core import Structure
@@ -207,7 +207,8 @@ class WFRFModel:
         return Structure(slab.lattice.matrix, species, coords_reversed_z, coords_are_cartesian=False)
 
     @staticmethod
-    def generate_slabs_from_bulk(bulk: Structure, miller: Union[tuple, list], tol: float = 0.4) -> list:
+    def generate_slabs_from_bulk(bulk: Structure, miller: Union[Tuple[int, int, int], List[int, int, int]],
+                                 tol: float = 0.4) -> list:
         n = 1
         while True:
             slab = SlabGenerator(bulk, miller, n, 10, in_unit_planes=True).get_slabs()[0]
@@ -244,7 +245,9 @@ class WFRFModel:
         x = self.sc.transform([feat_df.loc[0, self.features_labels].tolist()])
         return round(self.model.predict(x)[0], 4)
 
-    def predict_work_function_from_bulk_and_miller(self, bulk: Structure, miller: Union[list, tuple],
+    def predict_work_function_from_bulk_and_miller(self,
+                                                   bulk: Structure,
+                                                   miller: Union[Tuple[int, int, int], List[int, int, int]],
                                                    tol: float = 0.4) -> dict:
         """
         Predicts the work function from a bulk structure and a Miller index

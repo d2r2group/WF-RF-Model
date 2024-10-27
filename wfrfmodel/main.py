@@ -207,7 +207,7 @@ class WFRFModel:
         return Structure(slab.lattice.matrix, species, coords_reversed_z, coords_are_cartesian=False)
 
     @staticmethod
-    def generate_slabs_from_bulk(bulk: Structure, miller: Union[Tuple[int, int, int], List[int, int, int]],
+    def generate_slabs_from_bulk(bulk: Structure, miller: Union[Tuple[int, int, int], List[int]],
                                  tol: float = 0.4) -> list:
         n = 1
         while True:
@@ -247,7 +247,7 @@ class WFRFModel:
 
     def predict_work_function_from_bulk_and_miller(self,
                                                    bulk: Structure,
-                                                   miller: Union[Tuple[int, int, int], List[int, int, int]],
+                                                   miller: Union[Tuple[int, int, int], List[int]],
                                                    tol: float = 0.4) -> dict:
         """
         Predicts the work function from a bulk structure and a Miller index

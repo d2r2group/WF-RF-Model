@@ -1,0 +1,19 @@
+sklearn v1.6.1
+Random Forest with 15 features:
+{'bootstrap': True, 'ccp_alpha': 0.0, 'criterion': 'squared_error', 'max_depth': 50, 'max_features': 7, 'max_leaf_nodes': None, 'max_samples': None, 'min_impurity_decrease': 0.0, 'min_samples_leaf': 1, 'min_samples_split': 2, 'min_weight_fraction_leaf': 0.0, 'monotonic_cst': None, 'n_estimators': 500, 'n_jobs': None, 'oob_score': False, 'random_state': 100, 'verbose': 0, 'warm_start': False}
+Comment: Final RF model with 15 features (RFE) and optimal hyperparameters.
+Training set size = 52498, test set size = 5834, total number = 58332, test_size (fraction) = 0.1
+random_state = 100, n_splits_kfold = 10
+
+R2_base = 0.0 %
+RMSE_baseline = 0.86 eV
+MAE_baseline = 0.6 eV
+R2_training = 99.4 %
+RMSE_training = 0.06 eV
+MAE_training = 0.03 eV
+R2_cv = 95.8 %
+RMSE_cv: 0.18
+MAE_cv: 0.09
+R2_test = 95.7 %
+RMSE_test = 0.17 eV
+MAE_test = 0.09 eV

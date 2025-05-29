@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools >= 64.0", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wfrfmodel"
+dynamic = ["version"]
+description = "Random Forest Model to predict the work function of surfaces"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "joblib>=1.5.1",
+    "numpy>=2.2.6",
+    "pandas>=2.2.3",
+    "pathlib>=1.0.1",
+    "pymatgen>=2025.5.2",
+    "scikit-learn>=1.6.1",
+]
+authors = [
+    {name = "Peter Schindler", email = "p.schindler@northeastern.edu"}
+]
+maintainers = [
+    {name = "Peter Schindler", email = "p.schindler@northeastern.edu"}
+]
+license = {file = "LICENSE.md"}
+keywords = ["machine learning", "materials science", "work function", "random forest"]
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "License :: OSI Approved :: MIT License"
+]
+
+[project.urls]
+Repository = "https://github.com/d2r2group/WF-RF-Model"
+
+[dependency-groups]
+dev = ["twine", "build", "pytest"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["wfrfmodel", "wfrfmodel.atomic_features"]
+
+[tool.setuptools.package-data]
+wfrfmodel = ['*.json', '*.txt', 'atomic_features/*.txt']
+
+[tool.pytest.ini_options]
+pythonpath = "src"
+
+[tool.setuptools_scm]

@@ -31,13 +31,15 @@ mendeleev: list = [float(x.strip()) for x in content]
 class WFRFModel:
     """Class for predicting work functions using a pre-trained Random Forest model."""
 
-    def __init__(self):
-        """Initialize the WFRFModel class and load the pre-trained model and scaler."""
+    def __init__(self, model_filename: str = 'RF_1748260280.629787.joblib'):
+        """Initialize the WFRFModel class and load the pre-trained model and scaler.
+        :param model_filename: (str) Name of the joblib file containing the pre-trained Random Forest model
+        """
         try:
-            self.model = joblib.load(join(str(Path(__file__).absolute().parent), 'RF_1748260280.629787.joblib'))
+            self.model = joblib.load(join(str(Path(__file__).absolute().parent), model_filename))
         except FileNotFoundError:
-            raise FileNotFoundError('ML model joblib file not found. Please, download it from '
-                                    'here: https://zenodo.org/doi/10.5281/zenodo.10449567')
+            raise FileNotFoundError('ML model joblib file not found. Please, download the most recent one '
+                                    'from here: https://zenodo.org/doi/10.5281/zenodo.10449567')
 
         # Load feature scaling from training
         with open(join(str(Path(__file__).absolute().parent), 'scaler.json'), 'r') as jf:

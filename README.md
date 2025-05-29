@@ -32,7 +32,7 @@ Please, cite the following [paper](https://doi.org/10.1002/adfm.202401764) if yo
 
 The Python module can be installed by following these steps: 
 1. Clone the repository.
-2. Download file `RF_1691469908.2138267.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449567.svg)](https://zenodo.org/doi/10.5281/zenodo.10449567) and move it to the `wfrfmodel` folder (same folder as file `main.py`).
+2. Download file `RF_1748260280.629787.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449567.svg)](https://zenodo.org/doi/10.5281/zenodo.10449567) and move it to the `wfrfmodel` folder (same folder as file `main.py`).
 3. Run `pip install .` in the repository base folder.
 
 ## Usage
@@ -79,6 +79,14 @@ def __init__() -> None
 ```
 
 Initialize the WFRFModel class and load the pre-trained model and scaler.
+
+**Arguments**:
+
+- `model_filename`: (str) Name of the joblib file containing the pre-trained Random Forest model
+
+**Returns**:
+
+None
 
 #### `predict_work_functions_from_slab`
 

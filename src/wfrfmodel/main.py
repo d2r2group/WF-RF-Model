@@ -1,3 +1,8 @@
+"""Work Function Random Forest Model
+This module provides a class for predicting work functions of surfaces
+using a pre-trained Random Forest model.
+"""
+
 import pandas as pd
 import numpy as np
 import math
@@ -9,7 +14,7 @@ from os.path import join
 from pathlib import Path
 from pymatgen.core import Structure
 from pymatgen.core.periodic_table import Element
-from pymatgen.core.surface import SlabGenerator
+from pymatgen.core.surface import SlabGenerator, Slab
 from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore", category=UserWarning)  # To ignore sklearn warnings
@@ -24,8 +29,10 @@ mendeleev: list = [float(x.strip()) for x in content]
 
 
 class WFRFModel:
+    """Class for predicting work functions using a pre-trained Random Forest model."""
 
     def __init__(self):
+        """Initialize the WFRFModel class and load the pre-trained model and scaler."""
         try:
             self.model = joblib.load(join(str(Path(__file__).absolute().parent), 'RF_1748260280.629787.joblib'))
         except FileNotFoundError:
@@ -48,6 +55,11 @@ class WFRFModel:
 
     @staticmethod
     def group_indices_by_layers(positions: np.ndarray, frac_tol: float) -> list[list[int]]:
+        """Group indices of atoms by their layers based on their fractional coordinates in the z-direction.
+        :param positions: (np.ndarray) Array of fractional coordinates of atoms in the structure
+        :param frac_tol: (float) Tolerance in fractional coordinates to determine which atoms belong to the same layer
+        :return: (list[list[int]]) List of lists, where each inner list contains indices of atoms in the same layer
+        """
         counter: int = 0
         index_list: list = []
         while counter < positions.shape[0]:
@@ -72,6 +84,11 @@ class WFRFModel:
 
     @staticmethod
     def featurize(struc: Structure, tol: float = 0.4) -> np.ndarray:
+        """Featurize a slab structure to extract features for work function prediction.
+        :param struc: (Structure) Slab structure as a pymatgen Structure object
+        :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
+        :return: (np.ndarray) Array of features extracted from the slab structure
+        """
         # Tolerance tol in Angstrom
 
         # Alternative solution: [list(s.species.get_el_amt_dict().keys())[0] for s in struc.sites]
@@ -202,6 +219,10 @@ class WFRFModel:
 
     @staticmethod
     def mirror_slab(slab: Structure) -> Structure:
+        """Mirror the slab structure in the z-direction.
+        :param slab: (Structure) Slab structure as a pymatgen Structure object
+        :return: (Structure) Mirrored slab structure
+        """
         coords_reversed_z = []
         species = [sf.species for sf in slab]
         for site in slab:
@@ -210,7 +231,13 @@ class WFRFModel:
         return Structure(slab.lattice.matrix, species, coords_reversed_z, coords_are_cartesian=False)
 
     @staticmethod
-    def generate_slabs_from_bulk(bulk: Structure, miller: tuple[int, int, int], tol: float = 0.4) -> list:
+    def generate_slabs_from_bulk(bulk: Structure, miller: tuple[int, int, int], tol: float = 0.4) -> list[Slab]:
+        """Generate slabs from a bulk structure and a Miller index.
+        :param bulk: (Structure) Bulk structure as a pymatgen Structure object
+        :param miller: (tuple[int, int, int]) Miller index of slab to generate
+        :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
+        :return: (list) List of slab structures generated from the bulk structure
+        """
         n = 1
         while True:
             slab = SlabGenerator(bulk, miller, n, 10, in_unit_planes=True).get_slabs()[0]
@@ -223,6 +250,11 @@ class WFRFModel:
 
     @staticmethod
     def get_elements_topmost_layer(slab: Structure, tol: float = 0.4) -> str:
+        """Get the chemical elements of the topmost layer of a slab structure.
+        :param slab: (Structure) Slab structure as a pymatgen Structure object
+        :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
+        :return: (str) String of unique chemical elements in the topmost layer, separated by hyphens
+        """
         topelementsstring = []
         ftol = tol / slab.lattice.c
         slab_ind = WFRFModel.group_indices_by_layers(slab.frac_coords, ftol)
@@ -232,12 +264,11 @@ class WFRFModel:
 
     def predict_work_functions_from_slab(self, slab: Structure, tol: float = 0.4, 
                                         significant_digits: int = 4,) -> tuple[float, float]:
-        """
-        Predict the work function from a single slab structure.
+        """Predict the work functions (of top and bottom surface) from a single slab structure.
         :param slab: (Structure) Slab structure as a pymatgen Structure object
         :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
         :param significant_digits: (int) Number of significant digits to round the predicted work function (default 4)
-        :return: (float) Predicted work function of the top and bottom surfaces of the slab
+        :return: (tuple[float, float]) Predicted work function of the top and bottom surfaces of the slab
         """
         feat_df = pd.DataFrame(columns=self.features_labels)
         features_top = self.featurize(slab, tol=tol)
@@ -254,17 +285,16 @@ class WFRFModel:
                                                    miller: tuple[int, int, int],
                                                    tol: float = 0.4,
                                                    significant_digits: int = 4) -> dict[str, float]:
-        """
-        Predicts the work function from a bulk structure and a Miller index
+        """Predict the work functions from a bulk structure and a Miller index.
         :param bulk: (Structure) Bulk structure as a pymatgen Structure object
-        :param miller: (tuple or list) Miller index of surface
+        :param miller: (tuple[int, int, int]) Miller index of slab to generate
         :param tol: (float) Tolerance in Angstroms to determine which atoms belong to the same layer (default 0.4 A)
-        :return: (dict) Dictionary with keys as
-            '<termination number (e.g., 0,1,2,...)>, <terminating chemical species (e.g. Cs-Hg)>'
+        :return: (dict[str, float]) Dictionary with keys as
+            '<termination number (i.e., 0, 1, 2,...)>, <bottom/top>, <terminating chemical species (e.g., Cs-Hg)>'
             and the values are the respective predicted WFs
         """
         feat_df: pd.DataFrame = pd.DataFrame(columns=self.features_labels, dtype=float)
-        slabs: list[Structure] = self.generate_slabs_from_bulk(bulk, miller, tol=tol)
+        slabs: list[Slab] = self.generate_slabs_from_bulk(bulk, miller, tol=tol)
         surface_elements: dict[int, str] = {}
         si: int = 0
         for ind, s in enumerate(slabs):

@@ -9,7 +9,6 @@ import math
 import statistics
 import joblib
 import json
-import warnings
 from os.path import join
 from pathlib import Path
 from pymatgen.core import Structure
@@ -17,7 +16,6 @@ from pymatgen.core.periodic_table import Element
 from pymatgen.core.surface import SlabGenerator, Slab
 from sklearn.preprocessing import StandardScaler
 
-warnings.filterwarnings("ignore", category=UserWarning)  # To ignore sklearn warnings
 
 with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'firstionizationenergy.txt'), 'r') as f:
     content = f.readlines()
@@ -309,7 +307,7 @@ class WFRFModel:
             features_bottom = self.featurize(s_mirror, tol=tol)
             feat_df.loc[si, 'f_angles_min':'f_mend2_min'] = features_bottom
             si += 1
-        # feat_final = feat_df.round(8).drop_duplicates()
+        feat_df.columns = list(range(feat_df.shape[1]))
         x = self.sc.transform(feat_df)
         WFs = self.model.predict(x)
         results_dict: dict[str, float] = {}

@@ -1,6 +1,6 @@
-from pymatgen.core import Structure
-import pytest
+"""Test cases for the WFRFModel class in the wfrfmodel package."""
 
+from pymatgen.core import Structure
 from wfrfmodel import WFRFModel
 
 slab_dict1 = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'charge': 0, 'lattice': "
@@ -75,23 +75,25 @@ bulk_dict2 = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'ch
                 "{}}]}")
 
 def test_predict_work_functions_from_slab():
+    """Test the predict_work_functions_from_slab method of WFRFModel."""
     slab1 = Structure.from_dict(eval(slab_dict1)) # prediction 3.85, ground truth: 3.69
     slab2 = Structure.from_dict(eval(slab_dict2)) # prediction 3.49, ground truth: 3.40
-    WFModel = WFRFModel()
+    model = WFRFModel()
     # n_params = sum([tree.tree_.node_count for tree in WFModel.model.estimators_]) * 5
     # print(n_params)
-    top_WF_slab1, bottom_WF_slab1 = WFModel.predict_work_functions_from_slab(slab1)
-    top_WF_slab2, bottom_WF_slab2 = WFModel.predict_work_functions_from_slab(slab2)
+    top_WF_slab1, bottom_WF_slab1 = model.predict_work_functions_from_slab(slab1)
+    top_WF_slab2, bottom_WF_slab2 = model.predict_work_functions_from_slab(slab2)
     assert abs(top_WF_slab1 - 3.85) < 0.05, "Top WF for slab1 is incorrect"
     assert abs(bottom_WF_slab1 - 3.85) < 0.05, "Bottom WF for slab1 is incorrect"
     assert abs(top_WF_slab2 - 3.5) < 0.05, "Top WF for slab2 is incorrect"
     assert abs(bottom_WF_slab2 - 3.5) < 0.05, "Bottom WF for slab2 is incorrect"
 
 def test_predict_work_functions_from_bulk_and_miller():
+    """Test the predict_work_functions_from_bulk_and_miller method of WFRFModel."""
     bulk_W = Structure.from_dict(eval(bulk_dict))
     bulk_CsHg = Structure.from_dict(eval(bulk_dict2))
-    WFModel = WFRFModel()
-    WF_slabs_of_W = WFModel.predict_work_functions_from_bulk_and_miller(bulk_W, (1, 1, 0))  # returns dict with one slab with two WFs
-    WF_slabs_pf_CsHg = WFModel.predict_work_functions_from_bulk_and_miller(bulk_CsHg, (1, 0, 0))  # returns dict with 10 WFs
+    model = WFRFModel()
+    WF_slabs_of_W = model.predict_work_functions_from_bulk_and_miller(bulk_W, (1, 1, 0))  # returns dict with one slab with two WFs
+    WF_slabs_pf_CsHg = model.predict_work_functions_from_bulk_and_miller(bulk_CsHg, (1, 0, 0))  # returns dict with 10 WFs
     assert len(WF_slabs_of_W) == 2, "WF prediction for W bulk should return one slab with two WFs"
     assert len(WF_slabs_pf_CsHg) == 10, "WF prediction for CsHg bulk should return 10 slabs with one WF each"

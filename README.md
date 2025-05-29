@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="WFRFModel Logo" src=logo.svg width="200"><br>
+  <img alt="WFRFModel Logo" src=logo.svg width="350"><br>
 </div>
 
 # `Work Function Random Forest Model`

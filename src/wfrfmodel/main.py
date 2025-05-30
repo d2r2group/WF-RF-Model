@@ -9,13 +9,14 @@ import math
 import statistics
 import joblib
 import json
-from os.path import join
+from os.path import join, exists
 from pathlib import Path
 from pymatgen.core import Structure
 from pymatgen.core.periodic_table import Element
 from pymatgen.core.surface import SlabGenerator, Slab
 from sklearn.preprocessing import StandardScaler
-
+from urllib.request import urlretrieve
+from urllib.error import HTTPError
 
 with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'firstionizationenergy.txt'), 'r') as f:
     content = f.readlines()
@@ -25,6 +26,23 @@ with open(join(str(Path(__file__).absolute().parent), 'atomic_features', 'mendel
     content = f.readlines()
 mendeleev: list = [float(x.strip()) for x in content]
 
+def download_model_file(model_filename: str = 'RF_1748260280.629787.joblib') -> None:
+    """Download the pre-trained Random Forest model file from Zenodo.
+    :param model_filename: (str) Name of the joblib file containing the pre-trained Random Forest model
+    :returns: None
+    """
+    if not exists(join(str(Path(__file__).absolute().parent), model_filename)):
+        try:
+            url = 'https://zenodo.org/records/15549252/files/' + model_filename
+            dst = join(str(Path(__file__).absolute().parent), model_filename)
+            urlretrieve(url, dst)
+        except HTTPError:
+            print(f"Warning: Failed to download the model file '{model_filename}'. "
+                   "Please, try to download the most recent one from here: "
+                   "https://zenodo.org/doi/10.5281/zenodo.10449567 "
+                   "and move it to the `src/wfrfmodel` directory.")
+    else:
+        print(f"Model file '{model_filename}' already exists. Skipping download.", flush=True)
 
 class WFRFModel:
     """Class for predicting work functions using a pre-trained Random Forest model."""
@@ -32,6 +50,7 @@ class WFRFModel:
     def __init__(self, model_filename: str = 'RF_1748260280.629787.joblib'):
         """Initialize the WFRFModel class and load the pre-trained model and scaler.
         :param model_filename: (str) Name of the joblib file containing the pre-trained Random Forest model
+        :returns: None
         """
         try:
             self.model = joblib.load(join(str(Path(__file__).absolute().parent), model_filename))

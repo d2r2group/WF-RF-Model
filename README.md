@@ -31,9 +31,10 @@ Please, cite the following [paper](https://doi.org/10.1002/adfm.202401764) if yo
 ## Installation
 
 The Python module can be installed by following these steps: 
-1. Clone the repository.
-2. Download file `RF_1748260280.629787.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449567.svg)](https://zenodo.org/doi/10.5281/zenodo.10449567) and move it to the `wfrfmodel` folder (same folder as file `main.py`).
-3. Run `pip install .` in the repository base folder.
+1. `pip install wfrfmodel` (or by using `uv`)<br>
+**Alternatively**: Clone the repository and run `pip install .` in the repository base folder.
+2. Run the command `python -c "import wfrfmodel; wfrfmodel.download_model_file()"` to download the ML model joblib file.<br>
+**Alternatively**: Download file `RF_1748260280.629787.joblib` from [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449567.svg)](https://zenodo.org/doi/10.5281/zenodo.10449567) and move it to the `src/wfrfmodel` folder (same folder as file `main.py`).
 
 ## Usage
 
@@ -67,6 +68,20 @@ print(WFModel.predict_work_functions_from_bulk_and_miller(bulk, (1, 0, 0)))
 
 Below find a detailed documentation of all `WFRFModel` functions  and description of variables.
 
+### Function `download_model_file`
+```python
+def download_model_file(model_filename: str = 'RF_1748260280.629787.joblib') -> None
+```
+
+Download the pre-trained Random Forest model file from Zenodo.
+
+**Arguments**:
+
+- `model_filename`: (str) Name of the joblib file containing the pre-trained Random Forest model
+
+**Returns**:
+
+None
 
 ### Class `WFRFModel`
 

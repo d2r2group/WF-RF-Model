@@ -1,7 +1,7 @@
 """Test cases for the WFRFModel class in the wfrfmodel package."""
 
 from pymatgen.core import Structure
-from wfrfmodel import WFRFModel
+from wfrfmodel import WFRFModel, download_model_file
 
 slab_dict1 = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'charge': 0, 'lattice': "
                 "{'matrix': [[1.497946409343668, -2.5945192879986, 0.0], [1.497946409343668, 2.5945192879986, 0.0], "
@@ -73,6 +73,18 @@ bulk_dict2 = ("{'@module': 'pymatgen.core.structure', '@class': 'Structure', 'ch
                 "}}, {'species': [{'element': 'Hg', 'occu': 1.0}], 'abc': [0.86487797, 0.24730027, 0.05368446], "
                 "'xyz': [5.903605913445966, 1.7788901387012805, -1.6414424009600936], 'label': 'Hg', 'properties': "
                 "{}}]}")
+
+def test_model_file_download():
+    """Test the model file download functionality."""
+    download_model_file()
+
+def test_model_file_download_already_existing():
+    """Test the model file download functionality if model file already exists (was downloaded in first test above)."""
+    download_model_file()
+
+def test_model_file_download_error():
+    """Test that error is caught if link to download model file doesn't work. Prints a warning."""
+    download_model_file('RF.joblib')  # This should print a warning.
 
 def test_predict_work_functions_from_slab():
     """Test the predict_work_functions_from_slab method of WFRFModel."""

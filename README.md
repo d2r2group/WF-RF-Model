@@ -4,6 +4,8 @@
 
 # `Work Function Random Forest Model`
 
+![Python - Version](https://img.shields.io/pypi/pyversions/wfrfmodel)
+[![PyPI - Version](https://img.shields.io/pypi/v/wfrfmodel?color=blue)](https://pypi.org/project/wfrfmodel)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10449567.svg)](https://zenodo.org/doi/10.5281/zenodo.10449567)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

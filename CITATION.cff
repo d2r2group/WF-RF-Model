@@ -1,0 +1,40 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  Work Function Random Forest Model 
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file and/or cite the publication.
+type: software
+authors:
+  - given-names: Peter
+    family-names: Schindler
+    email: p.schindler@northeastern.edu
+    affiliation: Northeastern University
+    orcid: 'https://orcid.org/0000-0002-1319-6570'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.10449567
+    description: Zenodo Record
+  - type: doi
+    value: 10.48550/arXiv.2011.10905
+    description: Preprint
+  - type: doi
+    value: 10.1002/adfm.202401764
+    description: Peer-reviewed Publication
+repository-code: 'https://github.com/d2r2group/wfrfmodel/'
+abstract: >-
+  This is a Python package for predicting the work function 
+  of surfaces using a random forest model that was trained on 
+  a large dataset of up to ternary metallic compounds.
+keywords:
+  - machine learning
+  - materials science
+  - work function
+  - random forest
+license: MIT
+commit: 5a8049fafe9abff493ccda6cbf3baddaaf7a59fa
+version: v2.3.3
+date-released: '2025-5-30'
